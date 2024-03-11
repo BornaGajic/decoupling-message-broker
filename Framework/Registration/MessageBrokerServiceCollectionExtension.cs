@@ -13,10 +13,10 @@ public static class MessageBrokerServiceCollectionExtension
     /// 2. Registers <see cref="MessageHandlerCancellation"/> and ICache feature depending on <see cref="MessageBrokerStartupOptions.UseCancellation"/>.<br/>
     /// 3. Adds <see cref="MessageBrokerSettings"/> to <see cref="IOptions{TOptions}"/>
     /// </summary>
-    public static IServiceCollection RegisterMessageBroker(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterMessageBroker(this IServiceCollection services, IConfiguration configuration, Action<IBusConfigurator> busConfigCallback = null)
     {
         services.RegisterMessageBrokerOptions(configuration);
-        services.RegisterMessageBrokerServices();
+        services.RegisterMessageBrokerServices(busConfigCallback);
         return services;
     }
 
@@ -25,7 +25,7 @@ public static class MessageBrokerServiceCollectionExtension
         return services.AddOptions<MessageBrokerSettings>().Bind(configuration.GetRequiredSection(MessageBrokerSettings.ConfigurationKey));
     }
 
-    private static IServiceCollection RegisterMessageBrokerServices(this IServiceCollection services)
+    private static IServiceCollection RegisterMessageBrokerServices(this IServiceCollection services, Action<IBusConfigurator> busConfigCallback = null)
     {
         services.TryAddSingleton<RabbitMqServiceBus>();
         services.TryAddSingleton<InMemoryServiceBus>();
@@ -34,11 +34,15 @@ public static class MessageBrokerServiceCollectionExtension
         {
             var settings = svc.GetRequiredService<IOptions<MessageBrokerSettings>>();
 
-            return settings.Value.Transport switch
+            ServiceBus bus = settings.Value.Transport switch
             {
                 MessageBrokerTransport.RabbitMq => svc.GetRequiredService<RabbitMqServiceBus>(),
                 _ => svc.GetRequiredService<InMemoryServiceBus>()
             };
+
+            bus.ConfigureEndpoints(busConfigCallback);
+
+            return bus;
         });
 
         return services;

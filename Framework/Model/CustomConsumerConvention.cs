@@ -2,7 +2,6 @@
 using MassTransit.Metadata;
 using MassTransit.Middleware;
 using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Framework
 {
@@ -15,7 +14,7 @@ namespace Framework
 
         public CustomConsumeConnectorFactory()
         {
-            var filter = new CustomMethodConsumerMessageFilter<TConsumer, TMessage>();
+            var filter = new CustomConsumerMessageFilter<TConsumer, TMessage>();
 
             _consumerConnector = new ConsumerMessageConnector<TConsumer, TMessage>(filter);
             _instanceConnector = new InstanceMessageConnector<TConsumer, TMessage>(filter);
@@ -93,7 +92,7 @@ namespace Framework
     /// </summary>
     /// <typeparam name="TConsumer">The consumer type</typeparam>
     /// <typeparam name="TMessage">The message type</typeparam>
-    internal class CustomMethodConsumerMessageFilter<TConsumer, TMessage> : IConsumerMessageFilter<TConsumer, TMessage>
+    internal class CustomConsumerMessageFilter<TConsumer, TMessage> : IConsumerMessageFilter<TConsumer, TMessage>
         where TConsumer : class, IScopedMessageHandler
         where TMessage : class, IMessage
     {
@@ -117,7 +116,14 @@ namespace Framework
             var dstAdress = context.DestinationAddress.AbsoluteUri.Replace(context.DestinationAddress.PathAndQuery, string.Empty);
             var messageContext = new MessageContext(context, new Uri(dstAdress));
 
-            await context.Consumer.Handle(context.Message, messageContext);
+            try
+            {
+                await context.Consumer.Handle(context.Message, messageContext);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
     }
 }

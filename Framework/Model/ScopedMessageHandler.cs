@@ -37,6 +37,11 @@ namespace Framework
                 throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not a consumer of message type {TypeMetadataCache<TMessage>.ShortName}");
             }
 
+            if (!ServiceProvider.GetRequiredService<IServiceProviderIsService>().IsService(consumerType))
+            {
+                throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not registered with IServiceCollection.");
+            }
+
             return (ServiceProvider.GetRequiredService(consumerType) as IMessageHandler<TMessage>).Handle(message, context);
         }
 

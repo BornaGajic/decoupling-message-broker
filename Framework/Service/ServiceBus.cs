@@ -6,15 +6,22 @@ using Polly;
 
 namespace Framework
 {
-    public abstract class ServiceBus : IServiceBus
+    internal abstract class ServiceBus : IServiceBus
     {
         protected readonly Uri _baseUri;
+        private readonly BusConfigurator _busConfigurator = new();
         private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceProviderIsService _serviceProviderIsService;
         private IBusControl _bus;
 
-        public ServiceBus(IOptions<MessageBrokerSettings> messageBrokerSettings, IServiceProvider serviceProvider)
+        public ServiceBus(
+            IOptions<MessageBrokerSettings> messageBrokerSettings,
+            IServiceProvider serviceProvider,
+            IServiceProviderIsService serviceProviderIsService
+        )
         {
             _serviceProvider = serviceProvider;
+            _serviceProviderIsService = serviceProviderIsService;
             _baseUri = messageBrokerSettings.Value.Transport == MessageBrokerTransport.InMemory ? null : new Uri(messageBrokerSettings.Value.ConnectionString);
         }
 
@@ -39,6 +46,9 @@ namespace Framework
 
         public virtual void Start()
         {
+            if (_bus is not null)
+                return;
+
             var retryRabbitMqPolicy = Policy
                 .Handle<RabbitMqConnectionException>()
                 .WaitAndRetry(
@@ -59,6 +69,9 @@ namespace Framework
 
         public virtual async Task StartAsync()
         {
+            if (_bus is not null)
+                return;
+
             var retryRabbitMqPolicy = Policy
                 .Handle<RabbitMqConnectionException>()
                 .WaitAndRetryAsync(
@@ -82,51 +95,30 @@ namespace Framework
 
         public Task StopAsync() => _bus.StopAsync();
 
+        internal void ConfigureEndpoints(Action<IBusConfigurator> configurator) => configurator?.Invoke(_busConfigurator);
+
         /// <summary>
         /// Setup and create a Bus Control instance
         /// </summary>
         protected abstract IBusControl Setup();
 
         /// <summary>
-        /// Register all <see cref="IMessageHandler{TMessage}"/> found in all assemblies.
+        /// Register bus endpoints
         /// </summary>
         protected virtual void SetupEndpoints(IBusFactoryConfigurator cfg)
         {
-            var allMessageBrokerTypes = AppDomain
-                .CurrentDomain
-                .GetAssemblies()
-                .Where(assembly => !assembly.IsDynamic)
-                .SelectMany(t => t.GetTypes())
-                .Where(t =>
-                    t.IsAssignableTo(typeof(IMessage))
-                    || t.IsAssignableTo(typeof(IMessageHandler))
-                )
-                .ToList();
-
-            var messageTypes = allMessageBrokerTypes
-                .Where(t => !t.IsInterface && t.IsAssignableTo(typeof(IMessage)))
-                .Select(t => typeof(IMessageHandler<>).MakeGenericType(t))
-                .ToList();
-
-            var consumerTypes = allMessageBrokerTypes
-                .Where(t => messageTypes.Any(messageType => t.IsAssignableTo(messageType)))
-                .ToList();
-
-            SetupEndpoints(cfg, new Dictionary<string, IEnumerable<Type>>()
+            if (_busConfigurator.EndpointMap.Keys.Count > 0)
             {
-                ["tag-app-default"] = consumerTypes
-            });
-        }
-
-        protected virtual void SetupEndpoints(IBusFactoryConfigurator cfg, IDictionary<string, IEnumerable<Type>> endpointHandlers)
-        {
-            if (endpointHandlers.Count > 0)
-            {
-                foreach (var (endpointName, handlers) in endpointHandlers)
+                foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
                 {
-                    if (handlers.Any(handler => !handler.IsAssignableTo(typeof(IMessageHandler))))
+                    var invalidType = handlers.FirstOrDefault(handler =>
+                        !handler.IsAssignableTo(typeof(IMessageHandler))
+                        || !_serviceProviderIsService.IsService(handler)
+                    );
+
+                    if (invalidType is not null)
                     {
-                        throw new Exception($"Type is not assignable to {nameof(IMessageHandler)}");
+                        throw new Exception($"Type '{invalidType.FullName}' is not assignable to {nameof(IMessageHandler)} or is not registered with IServiceCollection.");
                     }
 
                     cfg.ReceiveEndpoint(endpointName, e =>

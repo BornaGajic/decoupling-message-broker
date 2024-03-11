@@ -1,15 +1,17 @@
 ﻿using Framework.Settings;
 using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Framework;
 
-public class RabbitMqServiceBus : ServiceBus
+internal class RabbitMqServiceBus : ServiceBus
 {
     public RabbitMqServiceBus(
         IOptions<MessageBrokerSettings> messageBrokerSettings,
-        IServiceProvider serviceProvider
-    ) : base(messageBrokerSettings, serviceProvider)
+        IServiceProvider serviceProvider,
+        IServiceProviderIsService serviceProviderIsService
+    ) : base(messageBrokerSettings, serviceProvider, serviceProviderIsService)
     {
     }
 
