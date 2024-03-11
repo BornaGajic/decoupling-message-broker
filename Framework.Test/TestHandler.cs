@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Framework.Test
+﻿namespace Framework.Test
 {
     public class MessageBrokerTestHandler(
-        [FromKeyedServices(nameof(MessageA))] TaskCompletionSource<MessageA> ReceivedA,
-        [FromKeyedServices(nameof(MessageB))] TaskCompletionSource<MessageB> ReceivedB
+        TaskCompletionSource<MessageA> ReceivedA,
+        TaskCompletionSource<MessageB> ReceivedB
     ) : IMessageHandler<MessageA>, IMessageHandler<MessageB>
     {
         Task IMessageHandler<MessageA>.Handle(MessageA message, IMessageContext context)

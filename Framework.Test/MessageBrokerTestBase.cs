@@ -11,12 +11,12 @@ namespace Framework.Test
             Container = SetupContainer(builder =>
             {
                 builder.AddSingleton<MessageBrokerTestHandler>();
-                builder.AddKeyedSingleton<TaskCompletionSource<MessageA>>(nameof(MessageA));
-                builder.AddKeyedSingleton<TaskCompletionSource<MessageB>>(nameof(MessageB));
+                builder.AddSingleton<TaskCompletionSource<MessageA>>();
+                builder.AddSingleton<TaskCompletionSource<MessageB>>();
 
                 builder.RegisterMessageBroker(config, cfg =>
                 {
-                    cfg.ReceiveEndpoint("tag-app-default", ep =>
+                    cfg.ReceiveEndpoint("app-default", ep =>
                     {
                         ep.AddHandler<MessageBrokerTestHandler>();
                     });

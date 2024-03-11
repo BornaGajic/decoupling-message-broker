@@ -9,8 +9,8 @@ namespace Framework.Test
         [Fact]
         public async Task HelloWorldMessageHandlers()
         {
-            var receivedA = Container.GetRequiredKeyedService<TaskCompletionSource<MessageA>>(nameof(MessageA));
-            var receivedB = Container.GetRequiredKeyedService<TaskCompletionSource<MessageB>>(nameof(MessageB));
+            var receivedA = Container.GetRequiredService<TaskCompletionSource<MessageA>>();
+            var receivedB = Container.GetRequiredService<TaskCompletionSource<MessageB>>();
 
             var messageA = new MessageA() { Value = "Hello", Id = Guid.NewGuid() };
             var messageB = new MessageB() { Value = "World", Id = Guid.NewGuid() };

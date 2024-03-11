@@ -107,32 +107,29 @@ namespace Framework
         /// </summary>
         protected virtual void SetupEndpoints(IBusFactoryConfigurator cfg)
         {
-            if (_busConfigurator.EndpointMap.Keys.Count > 0)
+            foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
             {
-                foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
+                var invalidType = handlers.FirstOrDefault(handler =>
+                    !handler.IsAssignableTo(typeof(IMessageHandler))
+                    || !_serviceProviderIsService.IsService(handler)
+                );
+
+                if (invalidType is not null)
                 {
-                    var invalidType = handlers.FirstOrDefault(handler =>
-                        !handler.IsAssignableTo(typeof(IMessageHandler))
-                        || !_serviceProviderIsService.IsService(handler)
-                    );
-
-                    if (invalidType is not null)
-                    {
-                        throw new Exception($"Type '{invalidType.FullName}' is not assignable to {nameof(IMessageHandler)} or is not registered with IServiceCollection.");
-                    }
-
-                    cfg.ReceiveEndpoint(endpointName, e =>
-                    {
-                        foreach (var consumer in handlers)
-                        {
-                            e.Consumer(
-                                typeof(ScopedMessageHandler<>).MakeGenericType(consumer),
-                                consumerType => ActivatorUtilities.CreateInstance(_serviceProvider, consumerType, [_serviceProvider.CreateScope()])
-                            );
-                        }
-                    });
+                    throw new Exception($"Type '{invalidType.FullName}' is not assignable to {nameof(IMessageHandler)} or is not registered with IServiceCollection.");
                 }
-            };
+
+                cfg.ReceiveEndpoint(endpointName, e =>
+                {
+                    foreach (var consumer in handlers)
+                    {
+                        e.Consumer(
+                            typeof(ScopedMessageHandler<>).MakeGenericType(consumer),
+                            consumerType => ActivatorUtilities.CreateInstance(_serviceProvider, consumerType, [_serviceProvider.CreateScope()])
+                        );
+                    }
+                });
+            }
         }
     }
 }
