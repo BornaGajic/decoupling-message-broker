@@ -17,7 +17,7 @@ internal class InMemoryServiceBus : ServiceBus
 
     protected override IBusControl Setup()
     {
-        ConsumerConvention.Register(new CustomConsumerConvention());
+        ConsumerConvention.Register<CustomConsumerConvention>();
 
         var bus = Bus.Factory.CreateUsingInMemory(cfg =>
         {
