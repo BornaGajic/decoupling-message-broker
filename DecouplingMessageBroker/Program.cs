@@ -7,7 +7,7 @@ namespace DecouplingMessageBroker
 {
     internal class Program
     {
-        private static async Task Main(string[] args)
+        private static async Task Main()
         {
             var container = SetupContainer(svc =>
             {
@@ -15,7 +15,7 @@ namespace DecouplingMessageBroker
             });
 
             var bus = container.GetRequiredService<IServiceBus>();
-            await bus.StartAsync();
+            bus.Start();
 
             Console.WriteLine("Bus started.");
             Console.WriteLine("Press ENTER to send a message to other console.");
@@ -35,7 +35,7 @@ namespace DecouplingMessageBroker
 
             Console.ReadKey();
 
-            await bus.StopAsync();
+            bus.Stop();
 
             Console.WriteLine("Bus stopped.");
         }

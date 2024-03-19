@@ -1,8 +1,4 @@
-﻿using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
-
-namespace Framework.Test
+﻿namespace Framework.Test
 {
     public class MessageBrokerTest() : MessageBrokerTestBase
     {

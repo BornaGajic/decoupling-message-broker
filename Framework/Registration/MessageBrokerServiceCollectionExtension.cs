@@ -10,8 +10,7 @@ public static class MessageBrokerServiceCollectionExtension
 {
     /// <summary>
     /// 1. Registers <see cref="IServiceBus"/> as <see cref="RabbitMqServiceBus"/> or <see cref="InMemoryServiceBus"/> depending on <see cref="MessageBrokerSettings.Transport"/>.<br/>
-    /// 2. Registers <see cref="MessageHandlerCancellation"/> and ICache feature depending on <see cref="MessageBrokerStartupOptions.UseCancellation"/>.<br/>
-    /// 3. Adds <see cref="MessageBrokerSettings"/> to <see cref="IOptions{TOptions}"/>
+    /// 2. Adds <see cref="MessageBrokerSettings"/> to <see cref="IOptions{TOptions}"/>
     /// </summary>
     public static IServiceCollection RegisterMessageBroker(this IServiceCollection services, IConfiguration configuration, Action<IBusConfigurator> busConfigCallback = null)
     {

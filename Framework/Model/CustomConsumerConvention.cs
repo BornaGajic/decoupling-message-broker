@@ -40,9 +40,6 @@ namespace Framework
         IConsumerMessageConvention IConsumerConvention.GetConsumerMessageConvention<TConsumer>() => new CustomConsumerMessageConvention<TConsumer>();
     }
 
-    /// <summary>
-    /// A legacy message-only consumer
-    /// </summary>
     internal class CustomConsumerInterfaceType : IMessageInterfaceType
     {
         private readonly Lazy<IMessageConnectorFactory> _consumeConnectorFactory;
@@ -68,11 +65,15 @@ namespace Framework
     internal class CustomConsumerMessageConvention<TConsumer> : IConsumerMessageConvention
         where TConsumer : class
     {
+        // Example:
+        // TConsumer = ScopedMessageHandler<MessageBrokerTestHandler>
+        // 1. Extract MessageBrokerTestHandler : IMessageHandler<MessageA>, IMessageHandler<MessageB> from TConsumer
+        // 2. Extract MessageA & MessageB from MessageBrokerTestHandler
         public IEnumerable<IMessageInterfaceType> GetMessageTypes()
         {
-            // see ScopedMessageHandler, generic parameter is the actual handler.
+            // See ScopedMessageHandler, generic parameter is the actual handler.
             var scopedConsumerType = typeof(TConsumer);
-            // actual message consumer that implements IMessageHandler<TMessage>
+            // Actual message consumer that implements IMessageHandler<TMessage>
             var consumerType = scopedConsumerType.IsGenericType && scopedConsumerType.GetGenericTypeDefinition() == typeof(ScopedMessageHandler<>)
                 ? scopedConsumerType.GetGenericArguments().First()
                 : throw new Exception("Consumer is not wrapped with ScopedMessageHandler.");
@@ -113,16 +114,14 @@ namespace Framework
                 throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not a consumer of message type {TypeMetadataCache<TMessage>.ShortName}");
             }
 
-            var dstAdress = context.DestinationAddress.AbsoluteUri.Replace(context.DestinationAddress.PathAndQuery, string.Empty);
-            var messageContext = new MessageContext(context, new Uri(dstAdress));
-
             try
             {
-                await context.Consumer.Handle(context.Message, messageContext);
+                await context.Consumer.Handle(context.Message, new MessageContext());
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                throw;
             }
         }
     }

@@ -7,14 +7,7 @@ namespace Worker
 {
     internal class Program
     {
-        public static IServiceProvider SetupContainer(Action<IServiceCollection> callback)
-        {
-            var services = new ServiceCollection();
-            callback?.Invoke(services);
-            return services.BuildServiceProvider();
-        }
-
-        private static async Task Main(string[] args)
+        private static void Main()
         {
             var container = SetupContainer(svc =>
             {
@@ -29,17 +22,24 @@ namespace Worker
             });
 
             var bus = container.GetRequiredService<IServiceBus>();
-            await bus.StartAsync();
+            bus.Start();
 
             Console.WriteLine("Bus started.");
 
             Console.ReadKey();
 
-            await bus.StopAsync();
+            bus.Stop();
 
             Console.WriteLine("Bus stopped.");
         }
 
         private static IConfiguration SetupConfiguration() => new ConfigurationBuilder().AddJsonFile("appsettings.json", false, false).Build();
+
+        private static IServiceProvider SetupContainer(Action<IServiceCollection> callback)
+        {
+            var services = new ServiceCollection();
+            callback?.Invoke(services);
+            return services.BuildServiceProvider();
+        }
     }
 }

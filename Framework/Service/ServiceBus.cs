@@ -6,22 +6,22 @@ using Polly;
 
 namespace Framework
 {
+    /// <summary>
+    /// Some method implementations are omitted to keep things clean.
+    /// </summary>
     internal abstract class ServiceBus : IServiceBus
     {
         protected readonly Uri _baseUri;
         private readonly BusConfigurator _busConfigurator = new();
         private readonly IServiceProvider _serviceProvider;
-        private readonly IServiceProviderIsService _serviceProviderIsService;
         private IBusControl _bus;
 
         public ServiceBus(
             IOptions<MessageBrokerSettings> messageBrokerSettings,
-            IServiceProvider serviceProvider,
-            IServiceProviderIsService serviceProviderIsService
+            IServiceProvider serviceProvider
         )
         {
             _serviceProvider = serviceProvider;
-            _serviceProviderIsService = serviceProviderIsService;
             _baseUri = messageBrokerSettings.Value.Transport == MessageBrokerTransport.InMemory ? null : new Uri(messageBrokerSettings.Value.ConnectionString);
         }
 
@@ -29,19 +29,6 @@ namespace Framework
             where T : class, IMessage
         {
             await _bus.Publish(message);
-        }
-
-        public virtual Task SendAsync<T>(string destination, T message)
-            where T : class, IMessage
-        {
-            return SendAsync(new Uri(_baseUri, destination), message);
-        }
-
-        public virtual async Task SendAsync<T>(Uri address, T message)
-            where T : class, IMessage
-        {
-            var sendEndpoint = await _bus.GetSendEndpoint(address);
-            await sendEndpoint.Send(message);
         }
 
         public virtual void Start()
@@ -67,33 +54,7 @@ namespace Framework
                 throw new Exception("Service bus failed to initialize.");
         }
 
-        public virtual async Task StartAsync()
-        {
-            if (_bus is not null)
-                return;
-
-            var retryRabbitMqPolicy = Policy
-                .Handle<RabbitMqConnectionException>()
-                .WaitAndRetryAsync(
-                    3,
-                    attempt => TimeSpan.FromSeconds(10)
-                );
-
-            _bus = await retryRabbitMqPolicy.ExecuteAsync(async () =>
-            {
-                var bus = Setup();
-                var busHandle = await bus.StartAsync();
-                await busHandle.Ready;
-                return bus;
-            });
-
-            if (_bus is null)
-                throw new Exception("Service bus failed to initialize.");
-        }
-
         public virtual void Stop() => _bus.Stop();
-
-        public Task StopAsync() => _bus.StopAsync();
 
         internal void ConfigureEndpoints(Action<IBusConfigurator> configurator) => configurator?.Invoke(_busConfigurator);
 
@@ -107,11 +68,13 @@ namespace Framework
         /// </summary>
         protected virtual void SetupEndpoints(IBusFactoryConfigurator cfg)
         {
+            var serviceProviderIsService = _serviceProvider.GetRequiredService<IServiceProviderIsService>();
+
             foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
             {
                 var invalidType = handlers.FirstOrDefault(handler =>
                     !handler.IsAssignableTo(typeof(IMessageHandler))
-                    || !_serviceProviderIsService.IsService(handler)
+                    || !serviceProviderIsService.IsService(handler)
                 );
 
                 if (invalidType is not null)

@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace Framework.Test
+﻿namespace Framework.Test
 {
     public class MessageBrokerTestBase : TestSetup
     {
-        public MessageBrokerTestBase()
+        static MessageBrokerTestBase()
         {
             var config = SetupConfiguration();
 
@@ -27,7 +25,7 @@ namespace Framework.Test
             Bus.Start();
         }
 
-        public IServiceBus Bus { get; private set; }
-        public IServiceProvider Container { get; }
+        public static IServiceBus Bus { get; }
+        public static IServiceProvider Container { get; }
     }
 }
