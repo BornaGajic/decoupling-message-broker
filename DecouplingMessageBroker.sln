@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34407.89
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DecouplingMessageBroker", "DecouplingMessageBroker.csproj", "{33E9DBE4-D924-4AC5-86CE-D7FF4A768895}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DecouplingMessageBroker", "DecouplingMessageBroker\DecouplingMessageBroker.csproj", "{33E9DBE4-D924-4AC5-86CE-D7FF4A768895}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework", "..\Framework\Framework.csproj", "{F2BF852A-D9DF-4706-B5AA-E4DA7AECC1CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework", "Framework\Framework.csproj", "{F2BF852A-D9DF-4706-B5AA-E4DA7AECC1CC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.Test", "..\Framework.Test\Framework.Test.csproj", "{09CC31EB-26D8-4DE0-90DA-82D36C9DA9B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.Test", "Framework.Test\Framework.Test.csproj", "{09CC31EB-26D8-4DE0-90DA-82D36C9DA9B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logic", "..\Logic\Logic.csproj", "{0156EDEA-08BC-439F-B119-B6B1F33AFA48}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logic", "Logic\Logic.csproj", "{0156EDEA-08BC-439F-B119-B6B1F33AFA48}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker", "..\Worker\Worker.csproj", "{5A90C5B2-70E9-4F13-82C4-C889B3237C96}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Worker", "Worker\Worker.csproj", "{5A90C5B2-70E9-4F13-82C4-C889B3237C96}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
