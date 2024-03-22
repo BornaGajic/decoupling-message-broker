@@ -7,7 +7,7 @@ public abstract class TestSetup
     public static IConfigurationRoot SetupConfiguration()
     {
         return new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", true, false)
+            .AddJsonFile("appsettings.json", false, false)
             .AddEnvironmentVariables("TEST_")
             .Build();
     }
