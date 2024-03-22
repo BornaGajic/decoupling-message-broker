@@ -8,9 +8,13 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    container: node:20
+    services:
+        rabbitmq:
+          image: rabbitmq:3-management
+          ports:
+            - 5672:5672
     steps:
     - uses: actions/checkout@v4
     - name: Setup .NET
@@ -23,3 +27,6 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+      env: 
+        TEST_MESSAGEBROKER__TRANSPORT: RabbitMq
+        TEST_MESSAGEBROKER__CONNECTIONSTRING: amqp://guest:guest@rabbitmq:5672/

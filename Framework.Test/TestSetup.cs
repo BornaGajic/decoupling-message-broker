@@ -8,6 +8,7 @@ public abstract class TestSetup
     {
         return new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", true, false)
+            .AddEnvironmentVariables("TEST_")
             .Build();
     }
 
