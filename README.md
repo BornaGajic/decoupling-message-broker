@@ -1,5 +1,5 @@
 # Decoupling Message Brokers
-This proof-of-concept repository will show how to decouple from message brokers, specifically Mass Transit implementation.
+This proof-of-concept repository will show how to decouple from message brokers, specifically Mass Transit implementation. See the [Wiki](https://github.com/BornaGajic/decoupling-message-broker/wiki) tab for more details.
 
 1. [DecouplingMessageBroker](https://github.com/BornaGajic/decoupling-message-broker/tree/main/DecouplingMessageBroker) is the "host" program, it is used to send messages to the "worker".
 2. [Logic](https://github.com/BornaGajic/decoupling-message-broker/tree/main/Logic) is a DLL that is shared between programs.
