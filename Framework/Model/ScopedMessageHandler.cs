@@ -13,9 +13,9 @@ namespace Framework
     {
         private bool _disposed;
 
-        public ScopedMessageHandler(IServiceScope serviceScope)
+        public ScopedMessageHandler(IServiceScopeFactory serviceScopeFactory)
         {
-            Scope = serviceScope;
+            Scope = serviceScopeFactory.CreateScope();
         }
 
         public IServiceScope Scope { get; }

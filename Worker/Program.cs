@@ -3,43 +3,43 @@ using Logic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Worker
+namespace Worker;
+
+internal class Program
 {
-    internal class Program
+    private static void Main()
     {
-        private static void Main()
+        var container = SetupContainer(svc =>
         {
-            var container = SetupContainer(svc =>
+            svc.RegisterMessageBroker(SetupConfiguration(), cfg =>
             {
-                svc.RegisterMessageBroker(SetupConfiguration(), cfg =>
+                cfg.ReceiveEndpoint("worker", ep =>
                 {
-                    cfg.ReceiveEndpoint("worker", ep =>
-                    {
-                        ep.AddHandler<MyMessageHandler>();
-                    });
+                    ep.AddHandler<MyMessageHandler>();
                 });
-                svc.AddSingleton<MyMessageHandler>();
             });
 
-            var bus = container.GetRequiredService<IServiceBus>();
-            bus.Start();
+            svc.AddSingleton<MyMessageHandler>();
+        });
 
-            Console.WriteLine("Bus started.");
+        var bus = container.GetRequiredService<IServiceBus>();
+        bus.Start();
 
-            Console.ReadKey();
+        Console.WriteLine("Bus started.");
 
-            bus.Stop();
+        Console.ReadKey();
 
-            Console.WriteLine("Bus stopped.");
-        }
+        bus.Stop();
 
-        private static IConfiguration SetupConfiguration() => new ConfigurationBuilder().AddJsonFile("appsettings.json", false, false).Build();
+        Console.WriteLine("Bus stopped.");
+    }
 
-        private static IServiceProvider SetupContainer(Action<IServiceCollection> callback)
-        {
-            var services = new ServiceCollection();
-            callback?.Invoke(services);
-            return services.BuildServiceProvider();
-        }
+    private static IConfiguration SetupConfiguration() => new ConfigurationBuilder().AddJsonFile("appsettings.json", false, false).Build();
+
+    private static IServiceProvider SetupContainer(Action<IServiceCollection> callback)
+    {
+        var services = new ServiceCollection();
+        callback?.Invoke(services);
+        return services.BuildServiceProvider();
     }
 }

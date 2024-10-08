@@ -1,7 +1,5 @@
-﻿using Framework.Settings;
-using MassTransit;
+﻿using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Framework
@@ -11,19 +9,16 @@ namespace Framework
     /// </summary>
     internal abstract class ServiceBus : IServiceBus
     {
-        protected readonly Uri _baseUri;
         private readonly BusConfigurator _busConfigurator = new();
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceProviderIsService _serviceProviderIsService;
         private IBusControl _bus;
 
-        public ServiceBus(
-            IOptions<MessageBrokerSettings> messageBrokerSettings,
-            IServiceProvider serviceProvider
-        )
+        public ServiceBus(IServiceProviderIsService serviceProviderIsService)
         {
-            _serviceProvider = serviceProvider;
-            _baseUri = messageBrokerSettings.Value.Transport == MessageBrokerTransport.InMemory ? null : new Uri(messageBrokerSettings.Value.ConnectionString);
+            _serviceProviderIsService = serviceProviderIsService;
         }
+
+        protected abstract Uri HostAdress { get; }
 
         public virtual async Task PublishAsync<T>(T message)
             where T : class, IMessage
@@ -56,43 +51,33 @@ namespace Framework
 
         public virtual void Stop() => _bus.Stop();
 
-        internal void ConfigureEndpoints(Action<IBusConfigurator> configurator) => configurator?.Invoke(_busConfigurator);
-
-        /// <summary>
-        /// Setup and create a Bus Control instance
-        /// </summary>
-        protected abstract IBusControl Setup();
-
-        /// <summary>
-        /// Register bus endpoints
-        /// </summary>
-        protected virtual void SetupEndpoints(IBusFactoryConfigurator cfg)
+        internal void ConfigureEndpoints(Action<IBusConfigurator> configurator)
         {
-            var serviceProviderIsService = _serviceProvider.GetRequiredService<IServiceProviderIsService>();
+            configurator?.Invoke(_busConfigurator);
 
             foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
             {
                 var invalidType = handlers.FirstOrDefault(handler =>
                     !handler.IsAssignableTo(typeof(IMessageHandler))
-                    || !serviceProviderIsService.IsService(handler)
+                    || !_serviceProviderIsService.IsService(handler)
                 );
 
                 if (invalidType is not null)
                 {
                     throw new Exception($"Type '{invalidType.FullName}' is not assignable to {nameof(IMessageHandler)} or is not registered with IServiceCollection.");
                 }
-
-                cfg.ReceiveEndpoint(endpointName, e =>
-                {
-                    foreach (var consumer in handlers)
-                    {
-                        e.Consumer(
-                            typeof(ScopedMessageHandler<>).MakeGenericType(consumer),
-                            consumerType => ActivatorUtilities.CreateInstance(_serviceProvider, consumerType, [_serviceProvider.CreateScope()])
-                        );
-                    }
-                });
             }
         }
+
+        /// <summary>
+        /// Gets the endpoint - handler map as an enumerable.
+        /// </summary>
+        protected internal IEnumerable<(string endpointName, IEnumerable<Type> handlers)> Endpoints()
+            => _busConfigurator.EndpointMap.Select(kv => (kv.Key, kv.Value));
+
+        /// <summary>
+        /// Setup and create a Bus Control instance
+        /// </summary>
+        protected abstract IBusControl Setup();
     }
 }
