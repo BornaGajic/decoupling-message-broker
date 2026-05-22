@@ -9,6 +9,8 @@ namespace DecouplingMessageBroker
     {
         private static async Task Main()
         {
+            Console.Title = "Producer";
+
             var container = SetupContainer(svc =>
             {
                 svc.RegisterMessageBroker(SetupConfiguration());

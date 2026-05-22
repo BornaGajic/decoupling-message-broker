@@ -12,13 +12,14 @@
                 builder.AddSingleton<TaskCompletionSource<MessageA>>();
                 builder.AddSingleton<TaskCompletionSource<MessageB>>();
 
-                builder.RegisterMessageBroker(config, cfg =>
+                builder.RegisterMessageBrokerEndpoint(cfg =>
                 {
-                    cfg.ReceiveEndpoint("app-default", ep =>
+                    cfg.ReceiveEndpoint("app-default", 2, ep =>
                     {
                         ep.AddHandler<MessageBrokerTestHandler>();
                     });
                 });
+                builder.RegisterMessageBroker(config);
             });
 
             Bus = Container.GetRequiredService<IServiceBus>();

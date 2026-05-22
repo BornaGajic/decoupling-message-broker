@@ -2,6 +2,7 @@
 using MassTransit.Metadata;
 using MassTransit.Middleware;
 using MassTransit;
+using Framework.Common;
 
 namespace Framework
 {
@@ -14,7 +15,7 @@ namespace Framework
 
         public CustomConsumeConnectorFactory()
         {
-            var filter = new CustomConsumerMessageFilter<TConsumer, TMessage>();
+            var filter = new CustomMethodConsumerMessageFilter<TConsumer, TMessage>();
 
             _consumerConnector = new ConsumerMessageConnector<TConsumer, TMessage>(filter);
             _instanceConnector = new InstanceMessageConnector<TConsumer, TMessage>(filter);
@@ -65,16 +66,12 @@ namespace Framework
     internal class CustomConsumerMessageConvention<TConsumer> : IConsumerMessageConvention
         where TConsumer : class
     {
-        // Example:
-        // TConsumer = ScopedMessageHandler<MessageBrokerTestHandler>
-        // 1. Extract MessageBrokerTestHandler : IMessageHandler<MessageA>, IMessageHandler<MessageB> from TConsumer
-        // 2. Extract MessageA & MessageB from MessageBrokerTestHandler
         public IEnumerable<IMessageInterfaceType> GetMessageTypes()
         {
-            // See ScopedMessageHandler, generic parameter is the actual handler.
+            // see ScopedMessageHandler, generic parameter is the actual handler.
             var scopedConsumerType = typeof(TConsumer);
-            // Actual message consumer that implements IMessageHandler<TMessage>
-            var consumerType = scopedConsumerType.IsGenericType && scopedConsumerType.GetGenericTypeDefinition() == typeof(ScopedMessageHandler<>)
+            // actual message consumer that implements IMessageHandler<TMessage>
+            var consumerType = scopedConsumerType.IsGenericType && (scopedConsumerType.GetGenericTypeDefinition() == typeof(ScopedMessageHandler<>) || scopedConsumerType.GetGenericTypeDefinition() == typeof(FaultConsumer<>))
                 ? scopedConsumerType.GetGenericArguments().First()
                 : throw new Exception("Consumer is not wrapped with ScopedMessageHandler.");
 
@@ -93,7 +90,7 @@ namespace Framework
     /// </summary>
     /// <typeparam name="TConsumer">The consumer type</typeparam>
     /// <typeparam name="TMessage">The message type</typeparam>
-    internal class CustomConsumerMessageFilter<TConsumer, TMessage> : IConsumerMessageFilter<TConsumer, TMessage>
+    internal class CustomMethodConsumerMessageFilter<TConsumer, TMessage> : IConsumerMessageFilter<TConsumer, TMessage>
         where TConsumer : class, IScopedMessageHandler
         where TMessage : class, IMessage
     {
@@ -114,15 +111,11 @@ namespace Framework
                 throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not a consumer of message type {TypeMetadataCache<TMessage>.ShortName}");
             }
 
-            try
-            {
-                await context.Consumer.Handle(context.Message, new MessageContext());
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                throw;
-            }
+            var dstAdress = context.DestinationAddress.AbsoluteUri.Replace(context.DestinationAddress.PathAndQuery, string.Empty);
+
+            var messageContext = new MessageContext(context, new Uri(dstAdress));
+
+            await context.Consumer.Handle(context.Message, messageContext);
         }
     }
 }

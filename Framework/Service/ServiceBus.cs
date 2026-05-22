@@ -1,4 +1,5 @@
-﻿using MassTransit;
+﻿using Framework.Settings;
+using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 
@@ -18,6 +19,7 @@ namespace Framework
             _serviceProviderIsService = serviceProviderIsService;
         }
 
+        protected internal IReadOnlyCollection<EndpointSettings> Endpoints => _busConfigurator.EndpointMap;
         protected abstract Uri HostAdress { get; }
 
         public virtual async Task PublishAsync<T>(T message)
@@ -40,7 +42,7 @@ namespace Framework
 
             _bus = retryRabbitMqPolicy.Execute(() =>
             {
-                var bus = Setup();
+                var bus = Setup(CancellationToken.None);
                 bus.Start();
                 return bus;
             });
@@ -51,13 +53,16 @@ namespace Framework
 
         public virtual void Stop() => _bus.Stop();
 
-        internal void ConfigureEndpoints(Action<IBusConfigurator> configurator)
+        internal void ConfigureEndpoints(IEnumerable<Action<IBusConfigurator>> configurators)
         {
-            configurator?.Invoke(_busConfigurator);
-
-            foreach (var (endpointName, handlers) in _busConfigurator.EndpointMap)
+            foreach (var configurator in configurators)
             {
-                var invalidType = handlers.FirstOrDefault(handler =>
+                configurator?.Invoke(_busConfigurator);
+            }
+
+            foreach (var setting in _busConfigurator.EndpointMap)
+            {
+                var invalidType = setting.HandlerTypes.FirstOrDefault(handler =>
                     !handler.IsAssignableTo(typeof(IMessageHandler))
                     || !_serviceProviderIsService.IsService(handler)
                 );
@@ -70,14 +75,8 @@ namespace Framework
         }
 
         /// <summary>
-        /// Gets the endpoint - handler map as an enumerable.
-        /// </summary>
-        protected internal IEnumerable<(string endpointName, IEnumerable<Type> handlers)> Endpoints()
-            => _busConfigurator.EndpointMap.Select(kv => (kv.Key, kv.Value));
-
-        /// <summary>
         /// Setup and create a Bus Control instance
         /// </summary>
-        protected abstract IBusControl Setup();
+        protected abstract IBusControl Setup(CancellationToken token = default);
     }
 }

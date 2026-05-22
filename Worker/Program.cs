@@ -9,15 +9,19 @@ internal class Program
 {
     private static void Main()
     {
+        Console.Title = "Worker";
+
         var container = SetupContainer(svc =>
         {
-            svc.RegisterMessageBroker(SetupConfiguration(), cfg =>
+            svc.RegisterMessageBrokerEndpoint(cfg =>
             {
-                cfg.ReceiveEndpoint("worker", ep =>
+                cfg.ReceiveEndpoint("worker", 2, ep =>
                 {
                     ep.AddHandler<MyMessageHandler>();
                 });
             });
+
+            svc.RegisterMessageBroker(SetupConfiguration());
 
             svc.AddSingleton<MyMessageHandler>();
         });

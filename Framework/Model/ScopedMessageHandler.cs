@@ -1,6 +1,7 @@
 ﻿using MassTransit.Metadata;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Framework.Cancellation;
 
 namespace Framework
 {
@@ -15,10 +16,11 @@ namespace Framework
 
         public ScopedMessageHandler(IServiceScopeFactory serviceScopeFactory)
         {
-            Scope = serviceScopeFactory.CreateScope();
+            Scope = serviceScopeFactory.CreateAsyncScope();
         }
 
         public IServiceScope Scope { get; }
+
         public IServiceProvider ServiceProvider => !_disposed ? Scope.ServiceProvider : throw new ObjectDisposedException(null, "Scope is disposed.");
 
         public void Dispose()
@@ -27,7 +29,7 @@ namespace Framework
             GC.SuppressFinalize(this);
         }
 
-        public Task Handle<TMessage>(TMessage message, IMessageContext context)
+        public async Task Handle<TMessage>(TMessage message, IMessageContext context)
             where TMessage : class, IMessage
         {
             var consumerType = typeof(TConsumer);
@@ -36,13 +38,24 @@ namespace Framework
             {
                 throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not a consumer of message type {TypeMetadataCache<TMessage>.ShortName}");
             }
-
             if (!ServiceProvider.GetRequiredService<IServiceProviderIsService>().IsService(consumerType))
             {
                 throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not registered with IServiceCollection.");
             }
 
-            return (ServiceProvider.GetRequiredService(consumerType) as IMessageHandler<TMessage>).Handle(message, context);
+            var handler = ServiceProvider.GetRequiredService(consumerType) as IMessageHandler<TMessage>;
+            var cancellationRegistration = await ServiceProvider
+                .GetRequiredService<MessageHandlerCancellation>()
+                .RegisterCancellationAsync(message.Id, context);
+
+            try
+            {
+                await handler.Handle(message, context);
+            }
+            finally
+            {
+                cancellationRegistration.Unregister();
+            }
         }
 
         protected virtual void Dispose(bool disposing)
