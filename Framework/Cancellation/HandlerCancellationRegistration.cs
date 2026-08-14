@@ -1,6 +1,6 @@
 ﻿namespace Framework.Cancellation;
 
-internal struct HandlerCancellationRegistration : IDisposable
+internal readonly struct HandlerCancellationRegistration : IDisposable
 {
     private readonly Guid _messageId;
     private readonly MessageHandlerCancellation _source;

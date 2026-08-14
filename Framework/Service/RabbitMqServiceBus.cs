@@ -6,6 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace Framework;
 
+// useful links:
+// AutoDelete and endpoint configuration: https://groups.google.com/g/masstransit-discuss/c/AlPB3s2QXfM
+// QueueExpiration: https://stackoverflow.com/questions/66760347/consequences-of-setting-queueexpiration-in-masstransit
+// Queue name per service type: https://stackoverflow.com/questions/69446842/multiple-consumers-with-the-same-name-in-different-projects-subscribed-to-the-sa
 internal class RabbitMqServiceBus : ServiceBus
 {
     private readonly IServiceProvider _serviceProvider;
@@ -23,7 +27,7 @@ internal class RabbitMqServiceBus : ServiceBus
 
     protected override Uri HostAdress => new(_settings.Value.ConnectionString);
 
-    protected override IBusControl Setup(CancellationToken token = default)
+    protected override IBusControl Setup(CancellationToken cancellationToken = default)
     {
         ConsumerConvention.Register<CustomConsumerConvention>();
 

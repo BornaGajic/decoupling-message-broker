@@ -11,6 +11,8 @@ namespace DecouplingMessageBroker
         {
             Console.Title = "Producer";
 
+            Console.WriteLine("Bus is starting...");
+
             var container = SetupContainer(svc =>
             {
                 svc.RegisterMessageBroker(SetupConfiguration());

@@ -18,7 +18,7 @@ internal class InMemoryServiceBus : ServiceBus
 
     protected override Uri HostAdress => null;
 
-    protected override IBusControl Setup(CancellationToken token = default)
+    protected override IBusControl Setup(CancellationToken cancellationToken = default)
     {
         ConsumerConvention.Register<CustomConsumerConvention>();
 

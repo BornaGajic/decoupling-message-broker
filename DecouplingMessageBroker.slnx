@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="DecouplingMessageBroker/Producer.csproj" />
+  <Project Path="Framework.Test/Framework.Test.csproj" />
+  <Project Path="Framework/Framework.csproj" />
+  <Project Path="Logic/Logic.csproj" />
+  <Project Path="Worker/Worker.csproj" />
+</Solution>

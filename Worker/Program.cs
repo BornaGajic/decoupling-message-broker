@@ -11,6 +11,8 @@ internal class Program
     {
         Console.Title = "Worker";
 
+        Console.WriteLine("Bus is starting...");
+
         var container = SetupContainer(svc =>
         {
             svc.RegisterMessageBrokerEndpoint(cfg =>
