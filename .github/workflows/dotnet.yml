@@ -21,7 +21,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 10.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -30,4 +30,4 @@ jobs:
       run: dotnet test --no-build --verbosity normal
       env: 
         TEST_MESSAGEBROKER__TRANSPORT: RabbitMq
-        TEST_MESSAGEBROKER__CONNECTIONSTRING: amqp://guest:guest@rabbitmq:5672/
+        TEST_MESSAGEBROKER__CONNECTIONSTRING: amqp://guest:guest@rabbitmq:5672
