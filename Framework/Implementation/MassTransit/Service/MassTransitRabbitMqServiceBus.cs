@@ -2,32 +2,36 @@
 using Framework.Settings;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Framework;
+namespace Framework.MassTransit;
 
 // useful links:
 // AutoDelete and endpoint configuration: https://groups.google.com/g/masstransit-discuss/c/AlPB3s2QXfM
 // QueueExpiration: https://stackoverflow.com/questions/66760347/consequences-of-setting-queueexpiration-in-masstransit
 // Queue name per service type: https://stackoverflow.com/questions/69446842/multiple-consumers-with-the-same-name-in-different-projects-subscribed-to-the-sa
-internal class RabbitMqServiceBus : ServiceBus
+internal class MassTransitRabbitMqServiceBus : MassTransitServiceBus
 {
+    private readonly ILogger _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly IOptions<MessageBrokerSettings> _settings;
 
-    public RabbitMqServiceBus(
+    public MassTransitRabbitMqServiceBus(
+        ILogger<MassTransitRabbitMqServiceBus> logger,
         IOptions<MessageBrokerSettings> messageBrokerSettings,
         IServiceProvider serviceProvider,
         IServiceProviderIsService serviceProviderIsService
     ) : base(serviceProviderIsService)
     {
+        _logger = logger;
         _settings = messageBrokerSettings;
         _serviceProvider = serviceProvider;
     }
 
     protected override Uri HostAdress => new(_settings.Value.ConnectionString);
 
-    protected override IBusControl Setup(CancellationToken cancellationToken = default)
+    protected override IBusControl Setup(int concurrencyLimit = 1, CancellationToken token = default)
     {
         ConsumerConvention.Register<CustomConsumerConvention>();
 
@@ -38,7 +42,10 @@ internal class RabbitMqServiceBus : ServiceBus
                 rc.Handle<RabbitMqConnectionException>();
                 rc.Interval(5, 5000);
             });
+            LogContext.ConfigureCurrentLogContext(_logger);
             cfg.Host(HostAdress);
+            cfg.UseConcurrencyLimit(concurrencyLimit);
+            cfg.Publish<IMessage>(topology => topology.Exclude = true);
 
             foreach (var setting in Endpoints)
             {
@@ -49,6 +56,8 @@ internal class RabbitMqServiceBus : ServiceBus
                         rc.Handle<RabbitMqConnectionException>();
                         rc.Interval(5, 5000);
                     });
+                    //e.DiscardFaultedMessages();
+                    //e.DiscardSkippedMessages();
                     e.UseConcurrencyLimit(setting.Concurrency);
                     e.PrefetchCount = setting.Concurrency;
                     e.PurgeOnStartup = true; // Remove messages on startup

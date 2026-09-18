@@ -6,13 +6,12 @@ namespace Framework;
 internal class BusConfigurator : IBusConfigurator
 {
     internal List<EndpointSettings> _endpointMap = [];
-    public IReadOnlyCollection<EndpointSettings> EndpointMap => _endpointMap;
+    public IList<EndpointSettings> EndpointMap => _endpointMap;
 
     /// <inheritdoc/>
     public void ReceiveEndpoint(string endpointName, int concurrency, Action<IBusEndpointConfigurator> endpointConfigurator)
     {
         var handlers = new HashSet<Type>();
-
         _endpointMap.Add(new EndpointSettings { Name = endpointName, HandlerTypes = handlers, Concurrency = concurrency });
 
         endpointConfigurator(new BusEndpointConfigurator(handlers));

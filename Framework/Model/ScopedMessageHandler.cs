@@ -1,74 +1,72 @@
-﻿using MassTransit.Metadata;
-using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Framework.Cancellation;
+using Framework.Common;
 
-namespace Framework
+namespace Framework;
+
+/// <summary>
+/// This class wraps <see cref="IMessageHandler{TMessage}"/> where it then creates the instance using <see cref="IServiceProvider"/> that was created via <see cref="IServiceScope"/>
+/// </summary>
+/// <typeparam name="TConsumer">Should implement <see cref="IMessageHandler{TMessage}"/></typeparam>
+internal class ScopedMessageHandler<TConsumer> : IScopedMessageHandler
+    where TConsumer : class, IMessageHandler
 {
-    /// <summary>
-    /// This class wraps <see cref="IMessageHandler{TMessage}"/> where it then creates the instance using <see cref="IServiceProvider"/> that was created via <see cref="IServiceScope"/>
-    /// </summary>
-    /// <typeparam name="TConsumer">Should implement <see cref="IMessageHandler{TMessage}"/></typeparam>
-    internal class ScopedMessageHandler<TConsumer> : IScopedMessageHandler, IDisposable
-        where TConsumer : class, IMessageHandler
+    private bool _disposed;
+
+    public ScopedMessageHandler(IServiceScopeFactory serviceScopeFactory)
     {
-        private bool _disposed;
+        Scope = serviceScopeFactory.CreateAsyncScope();
+    }
 
-        public ScopedMessageHandler(IServiceScopeFactory serviceScopeFactory)
+    public IServiceScope Scope { get; }
+
+    public IServiceProvider ServiceProvider => !_disposed ? Scope.ServiceProvider : throw new ObjectDisposedException(null, "Scope is disposed.");
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public async Task Handle<TMessage>(TMessage message, IMessageContext context)
+        where TMessage : class, IMessage
+    {
+        var consumerType = typeof(TConsumer);
+
+        if (!consumerType.IsAssignableTo(typeof(IMessageHandler<TMessage>)))
         {
-            Scope = serviceScopeFactory.CreateAsyncScope();
+            throw new MessageHandlerException($"Handler type {typeof(TConsumer).Name} does not handle message type {typeof(TMessage).Name}.");
+        }
+        if (!ServiceProvider.GetRequiredService<IServiceProviderIsService>().IsService(consumerType))
+        {
+            throw new MessageHandlerException($"Handler type {typeof(TConsumer).Name} is not registered with IServiceCollection.");
         }
 
-        public IServiceScope Scope { get; }
+        var handler = ServiceProvider.GetRequiredService(consumerType) as IMessageHandler<TMessage>;
+        var cancellationRegistration = await ServiceProvider
+            .GetRequiredService<MessageHandlerCancellation>()
+            .RegisterCancellationAsync(message.Id, context);
 
-        public IServiceProvider ServiceProvider => !_disposed ? Scope.ServiceProvider : throw new ObjectDisposedException(null, "Scope is disposed.");
-
-        public void Dispose()
+        try
         {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+            await handler.Handle(message, context);
         }
-
-        public async Task Handle<TMessage>(TMessage message, IMessageContext context)
-            where TMessage : class, IMessage
+        finally
         {
-            var consumerType = typeof(TConsumer);
-
-            if (!consumerType.IsAssignableTo(typeof(IMessageHandler<TMessage>)))
-            {
-                throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not a consumer of message type {TypeMetadataCache<TMessage>.ShortName}");
-            }
-            if (!ServiceProvider.GetRequiredService<IServiceProviderIsService>().IsService(consumerType))
-            {
-                throw new ConsumerMessageException($"Consumer type {TypeMetadataCache<TConsumer>.ShortName} is not registered with IServiceCollection.");
-            }
-
-            var handler = ServiceProvider.GetRequiredService(consumerType) as IMessageHandler<TMessage>;
-            var cancellationRegistration = await ServiceProvider
-                .GetRequiredService<MessageHandlerCancellation>()
-                .RegisterCancellationAsync(message.Id, context);
-
-            try
-            {
-                await handler.Handle(message, context);
-            }
-            finally
-            {
-                cancellationRegistration.Unregister();
-            }
+            cancellationRegistration.Unregister();
         }
+    }
 
-        protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            if (!_disposed)
+            if (disposing)
             {
-                if (disposing)
-                {
-                    Scope.Dispose();
-                }
-
-                _disposed = true;
+                Scope.Dispose();
             }
+
+            _disposed = true;
         }
     }
 }

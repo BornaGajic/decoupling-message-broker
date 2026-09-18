@@ -4,7 +4,7 @@ using MassTransit.Middleware;
 using MassTransit;
 using Framework.Common;
 
-namespace Framework
+namespace Framework.MassTransit
 {
     internal class CustomConsumeConnectorFactory<TConsumer, TMessage> : IMessageConnectorFactory
         where TConsumer : class, IScopedMessageHandler
@@ -41,6 +41,9 @@ namespace Framework
         IConsumerMessageConvention IConsumerConvention.GetConsumerMessageConvention<TConsumer>() => new CustomConsumerMessageConvention<TConsumer>();
     }
 
+    /// <summary>
+    /// A legacy message-only consumer
+    /// </summary>
     internal class CustomConsumerInterfaceType : IMessageInterfaceType
     {
         private readonly Lazy<IMessageConnectorFactory> _consumeConnectorFactory;
@@ -113,7 +116,7 @@ namespace Framework
 
             var dstAdress = context.DestinationAddress.AbsoluteUri.Replace(context.DestinationAddress.PathAndQuery, string.Empty);
 
-            var messageContext = new MessageContext(context, new Uri(dstAdress));
+            var messageContext = new MassTransitMessageContext(context, new Uri(dstAdress));
 
             await context.Consumer.Handle(context.Message, messageContext);
         }

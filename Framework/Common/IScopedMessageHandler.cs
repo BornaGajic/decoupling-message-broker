@@ -1,6 +1,6 @@
 ﻿namespace Framework;
 
-internal interface IScopedMessageHandler
+internal interface IScopedMessageHandler : IDisposable
 {
     IServiceProvider ServiceProvider { get; }
 

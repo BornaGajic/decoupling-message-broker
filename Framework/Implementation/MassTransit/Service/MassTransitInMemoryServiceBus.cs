@@ -2,13 +2,13 @@
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Framework;
+namespace Framework.MassTransit;
 
-internal class InMemoryServiceBus : ServiceBus
+internal class MassTransitInMemoryServiceBus : MassTransitServiceBus
 {
     private readonly IServiceProvider _serviceProvider;
 
-    public InMemoryServiceBus(
+    public MassTransitInMemoryServiceBus(
         IServiceProvider serviceProvider,
         IServiceProviderIsService serviceProviderIsService
     ) : base(serviceProviderIsService)
@@ -18,21 +18,21 @@ internal class InMemoryServiceBus : ServiceBus
 
     protected override Uri HostAdress => null;
 
-    protected override IBusControl Setup(CancellationToken cancellationToken = default)
+    protected override IBusControl Setup(int concurrencyLimit = 1, CancellationToken token = default)
     {
         ConsumerConvention.Register<CustomConsumerConvention>();
 
         return Bus.Factory.CreateUsingInMemory(cfg =>
         {
+            cfg.UseConcurrencyLimit(concurrencyLimit);
             cfg.Host(HostAdress);
+            cfg.Publish<IMessage>(topology => topology.Exclude = true);
 
             foreach (var setting in Endpoints)
             {
                 cfg.ReceiveEndpoint(setting.Name, e =>
                 {
                     e.UseConcurrencyLimit(setting.Concurrency);
-                    e.PrefetchCount = setting.Concurrency;
-
                     foreach (var consumer in setting.HandlerTypes)
                     {
                         // One consumer can implement multiple IMessageHandler<> interfaces

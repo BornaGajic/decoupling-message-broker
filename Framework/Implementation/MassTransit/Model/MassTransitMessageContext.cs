@@ -1,14 +1,14 @@
 ﻿using MassTransit;
 
-namespace Framework;
+namespace Framework.MassTransit;
 
-public sealed class MessageContext : IMessageContext
+internal sealed class MassTransitMessageContext : IMessageContext
 {
     private readonly Uri _baseUri;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ConsumeContext _messageHandlerContext;
 
-    public MessageContext(ConsumeContext messageHandlerContext, Uri baseUri)
+    public MassTransitMessageContext(ConsumeContext messageHandlerContext, Uri baseUri)
     {
         _messageHandlerContext = messageHandlerContext;
         _baseUri = baseUri;
