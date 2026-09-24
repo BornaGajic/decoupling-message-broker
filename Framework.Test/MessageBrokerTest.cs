@@ -11,8 +11,8 @@
             var messageA = new MessageA() { Value = "Hello", Id = Guid.NewGuid() };
             var messageB = new MessageB() { Value = "World", Id = Guid.NewGuid() };
 
-            await Bus.PublishAsync(messageA);
-            await Bus.PublishAsync(messageB);
+            await Bus.PublishAsync(messageA, TestContext.Current.CancellationToken);
+            await Bus.PublishAsync(messageB, TestContext.Current.CancellationToken);
 
             var resultA = await receivedA.Task;
             var resultB = await receivedB.Task;
